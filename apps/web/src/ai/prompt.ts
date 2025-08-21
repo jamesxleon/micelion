@@ -35,15 +35,19 @@ export async function generatePlan({
 
     let planData;
     try {
-      // The Edge Function now returns JSON string directly
-      if (typeof data === 'string') {
-        // Try to parse as JSON, handling potential markdown code blocks
-        const cleanedData = data.replace(/```json\n?/, '').replace(/\n?```/, '');
-        planData = JSON.parse(cleanedData);
+      // The Edge Function returns { reply: content }
+      let content;
+      if (data?.reply) {
+        content = data.reply;
+      } else if (typeof data === 'string') {
+        content = data;
       } else {
-        // If data is already an object, use it directly
-        planData = data;
+        throw new Error('Unexpected response format');
       }
+
+      // Handle potential markdown code blocks in the content
+      const cleanedContent = content.replace(/```json\n?/, '').replace(/\n?```/, '');
+      planData = JSON.parse(cleanedContent);
     } catch (parseError) {
       console.error('Raw response data:', data);
       throw new PlanGenerationError('Invalid JSON response from AI', parseError as Error);
